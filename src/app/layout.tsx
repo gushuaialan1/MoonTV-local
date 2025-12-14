@@ -9,8 +9,14 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 import { getConfig } from '@/lib/config';
 
 import { GlobalErrorIndicator } from '../components/GlobalErrorIndicator';
+import { NavigationLoadingIndicator } from '../components/NavigationLoadingIndicator';
+import { NavigationLoadingProvider } from '../components/NavigationLoadingProvider';
 import { SiteProvider } from '../components/SiteProvider';
+import SubscriptionAutoUpdate from '../components/SubscriptionAutoUpdate';
+import UserOnlineUpdate from '../components/UserOnlineUpdate';
 import { ThemeProvider } from '../components/ThemeProvider';
+
+export const runtime = 'edge';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -52,6 +58,10 @@ export default async function RootLayout({
   let doubanImageProxy = process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '';
   let disableYellowFilter =
     process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true';
+  let danmakuApiBaseUrl =
+    process.env.NEXT_PUBLIC_DANMU_API_BASE_URL ||
+    '';
+  let autoUpdateEnabled = false;
   if (storageType !== 'localstorage') {
     const config = await getConfig();
     siteName = config.SiteConfig.SiteName;
@@ -62,6 +72,9 @@ export default async function RootLayout({
     doubanImageProxyType = config.SiteConfig.DoubanImageProxyType;
     doubanImageProxy = config.SiteConfig.DoubanImageProxy;
     disableYellowFilter = config.SiteConfig.DisableYellowFilter;
+    danmakuApiBaseUrl =
+      config.SiteConfig.DanmakuApiBaseUrl || danmakuApiBaseUrl;
+    autoUpdateEnabled = config.SubscriptionConfig?.autoUpdate === true;
   }
 
   // 将运行时配置注入到全局 window 对象，供客户端在运行时读取
@@ -73,6 +86,7 @@ export default async function RootLayout({
     DOUBAN_IMAGE_PROXY_TYPE: doubanImageProxyType,
     DOUBAN_IMAGE_PROXY: doubanImageProxy,
     DISABLE_YELLOW_FILTER: disableYellowFilter,
+    DANMU_API_BASE_URL: danmakuApiBaseUrl,
   };
 
   return (
@@ -100,10 +114,15 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SiteProvider siteName={siteName} announcement={announcement}>
-            {children}
-            <GlobalErrorIndicator />
-          </SiteProvider>
+          <NavigationLoadingProvider>
+            <SiteProvider siteName={siteName} announcement={announcement}>
+              <NavigationLoadingIndicator />
+              <UserOnlineUpdate />
+              {children}
+              <GlobalErrorIndicator />
+              {autoUpdateEnabled && <SubscriptionAutoUpdate />}
+            </SiteProvider>
+          </NavigationLoadingProvider>
         </ThemeProvider>
       </body>
     </html>

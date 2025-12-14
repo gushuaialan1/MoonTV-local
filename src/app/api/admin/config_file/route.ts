@@ -6,6 +6,8 @@ import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { getStorage } from '@/lib/db';
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
   if (storageType === 'localstorage') {
@@ -59,15 +61,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 创建新的配置对象，避免直接修改原对象
-    const updatedConfig = {
-      ...adminConfig,
-      ConfigFile: configFile
-    };
-    
     // 更新配置文件
+    adminConfig.ConfigFile = configFile;
+    
     if (storage && typeof (storage as any).setAdminConfig === 'function') {
-      await (storage as any).setAdminConfig(updatedConfig);
+      await (storage as any).setAdminConfig(adminConfig);
 
       return NextResponse.json({
         success: true,
